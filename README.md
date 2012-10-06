@@ -1,6 +1,5 @@
-vagrant-symfony
-===============
+#USJ Vagrant Symfony
 
-My Symfony2 dev environment with vagrant and puppet. Uses nginx, mongodb, php 5.4 with phpunit.
+Symfony2 development 
 
-Add the precise64 box from http://files.vagrantup.com/precise64.box
+Box requrired : http://mirror.usj.edu.mo/vagrant-boxes/centos-6_3-x86_64-minimal-puppet.box
