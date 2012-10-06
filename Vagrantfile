@@ -7,7 +7,7 @@ Vagrant::Config.run do |config|
   # please see the online documentation at vagrantup.com.
 
   # Every Vagrant virtual environment requires a box to build off of.
-  config.vm.box = "precise64"
+  config.vm.box = "centos-6_3-x86_64-minimal-puppet"
 
   # Enable the Puppet provisioner
   config.vm.provision :puppet

@@ -7,51 +7,36 @@ class nginx-php-mongo {
 		ip           => $ipaddress,
 	}
 	
-	$php = ["php5-fpm", "php5-cli", "php5-dev", "php5-gd", "php5-curl", "php-pear", "php-apc", "php5-mcrypt", "php5-xdebug", "php5-sqlite"]
-	
-	exec { 'apt-get update':
-	  	command => '/usr/bin/apt-get update',
-		before => [Package["python-software-properties"], Package["build-essential"], Package["nginx"], Package["mongodb"], Package[$php]],
-	}
-	
-	package { "python-software-properties":
-		ensure => present,
-	}
-	
-	exec { 'add-apt-repository ppa:ondrej/php5':
-		command => '/usr/bin/add-apt-repository ppa:ondrej/php5',
-		require => Package["python-software-properties"],
-	}
-	
-	exec { 'apt-get update for latest php':
-	  	command => '/usr/bin/apt-get update',
-		before => Package[$php],
-		require => Exec['add-apt-repository ppa:ondrej/php5'],
-	}
-	
-	package { "build-essential":
-		ensure => present,
+	$php = ["php-fpm", "php-cli", "php-devel", "php-gd", "php-pear", "php-pecl-apc", "php-mcrypt", "php-pecl-xdebug", "php-pecl-sqlite"]
+
+	exec { 'yum -y update':
+	  	command => '/usr/bin/yum -y update',
+		before => [Package["nginx"],  Package["mongo-10gen-server"], Package["mongo-10gen"], Package[$php]],
 	}
 	
 	package { "nginx":
-	ensure => present,
+		ensure => present,
 	}
 	
-	package { "mongodb":
-	  ensure => present,
+	package { "mongo-10gen":
+		ensure => present,
+	}
+
+	package { "mongo-10gen-server":
+		ensure => present,
 	}
 	
 	package { $php:
-		notify => Service['php5-fpm'],
+		notify => Service['php-fpm'],
 		ensure => latest,
 	}
 	
 	exec { 'pecl install mongo':
-		notify => Service["php5-fpm"],
+		notify => Service["php-fpm"],
 		command => '/usr/bin/pecl install --force mongo',
 		logoutput => "on_failure",
-		require => [Package["build-essential"], Package[$php]],
-		before => [File['/etc/php5/cli/php.ini'], File['/etc/php5/fpm/php.ini'], File['/etc/php5/fpm/php-fpm.conf'], File['/etc/php5/fpm/pool.d/www.conf']],
+		require => [ Package[$php]],
+		before => [File['/etc/php/cli/php.ini'], File['/etc/php/fpm/php.ini'], File['/etc/php/fpm/php-fpm.conf'], File['/etc/php/fpm/pool.d/www.conf']],
 		unless => "/usr/bin/php -m | grep mongo",
 	}
 	
@@ -63,13 +48,13 @@ class nginx-php-mongo {
 	}
 	
 	exec { 'pear install pear.phpunit.de/PHPUnit':
-		notify => Service["php5-fpm"],
+		notify => Service["php-fpm"],
 		command => '/usr/bin/pear install --force pear.phpunit.de/PHPUnit',
-		before => [File['/etc/php5/cli/php.ini'], File['/etc/php5/fpm/php.ini'], File['/etc/php5/fpm/php-fpm.conf'], File['/etc/php5/fpm/pool.d/www.conf']],
+		before => [File['/etc/php/cli/php.ini'], File['/etc/php/fpm/php.ini'], File['/etc/php/fpm/php-fpm.conf'], File['/etc/php/fpm/pool.d/www.conf']],
 		unless => "/bin/ls -l /usr/bin/ | grep phpunit",
 	}
 	
-	file { '/etc/php5/cli/php.ini':
+	file { '/etc/php/cli/php.ini':
 		owner  => root,
 		group  => root,
 		ensure => file,
@@ -78,8 +63,8 @@ class nginx-php-mongo {
 		require => Package[$php],
 	}
 	
-	file { '/etc/php5/fpm/php.ini':
-		notify => Service["php5-fpm"],
+	file { '/etc/php/fpm/php.ini':
+		notify => Service["php-fpm"],
 		owner  => root,
 		group  => root,
 		ensure => file,
@@ -88,8 +73,8 @@ class nginx-php-mongo {
 		require => Package[$php],
 	}
 	
-	file { '/etc/php5/fpm/php-fpm.conf':
-		notify => Service["php5-fpm"],
+	file { '/etc/php/fpm/php-fpm.conf':
+		notify => Service["php-fpm"],
 		owner  => root,
 		group  => root,
 		ensure => file,
@@ -98,8 +83,8 @@ class nginx-php-mongo {
 		require => Package[$php],
 	}
 	
-	file { '/etc/php5/fpm/pool.d/www.conf':
-		notify => Service["php5-fpm"],
+	file { '/etc/php/fpm/pool.d/www.conf':
+		notify => Service["php-fpm"],
 		owner  => root,
 		group  => root,
 		ensure => file,
@@ -108,25 +93,18 @@ class nginx-php-mongo {
 		require => Package[$php],
 	}
 	
-	file { '/etc/nginx/sites-available/default':
+	file { '/etc/nginx/conf.d/default.conf':
 		owner  => root,
 		group  => root,
 		ensure => file,
 		mode   => 644,
-		source => '/vagrant/files/nginx/default',
+		source => '/vagrant/files/nginx/default.conf',
 		require => Package["nginx"],
 	}
 	
-	file { "/etc/nginx/sites-enabled/default":
-		notify => Service["nginx"],
-		ensure => link,
-		target => "/etc/nginx/sites-available/default",
-		require => Package["nginx"],
-	}
-	
-	service { "php5-fpm":
+	service { "php-fpm":
 	  ensure => running,
-	  require => Package["php5-fpm"],
+	  require => Package["php-fpm"],
 	}
 	
 	service { "nginx":
@@ -134,9 +112,40 @@ class nginx-php-mongo {
 	  require => Package["nginx"],
 	}
 	
-	service { "mongodb":
+	service { "mongod":
 	  ensure => running,
-	  require => Package["mongodb"],
+	  require => Package["mongo-10gen-server"],
+	}
+	yumrepo { "10gen":
+		baseurl => "http://downloads-distro.mongodb.org/repo/redhat/os/x86_64",
+	    descr => "10gen Repository",
+		before => [Package["nginx"], Package["mongo-10gen-server"], Package["mongo-10gen"], Package[$php]],
+	    enabled => 1,
+	    gpgcheck => 0,
+    }
+
+	yumrepo { "epel-repo":
+		mirrorlist => "https://mirrors.fedoraproject.org/metalink?repo=epel-6&arch=x86_64",
+	    descr => "Extra Packages for Enterprise Linux 6",
+		before => [Package["nginx"],  Package["mongo-10gen-server"], Package["mongo-10gen"], Package[$php]],
+	    enabled => 1,
+	    gpgcheck => 0,
+    }
+
+    yumrepo   { "remi-repo":
+	    mirrorlist => "http://rpms.famillecollet.com/enterprise/6/remi/mirror",
+	    descr => "Les RPM de remi pour Enterprise Linux 6",
+		before => [Package["nginx"],  Package["mongo-10gen-server"], Package["mongo-10gen"], Package[$php]],
+	    enabled => 1,
+	    gpgcheck => 0,
+	}
+
+	yumrepo   { "remi-test-repo":
+	    mirrorlist => "http://rpms.famillecollet.com/enterprise/6/test/mirror",
+	    descr => "Les RPM de remi en test pour Enterprise Linux 6",
+		before => [Package["nginx"],  Package["mongo-10gen-server"], Package["mongo-10gen"], Package[$php]],
+	    enabled => 1,
+	    gpgcheck => 0,
 	}
 }
 	
