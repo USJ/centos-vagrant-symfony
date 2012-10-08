@@ -33,7 +33,7 @@ class nginx-php-mongo {
 	}
 
 	exec { 'iptables -I INPUT -p tcp --dport 80 -j ACCEPT':
-		command => 'iptables -I INPUT -p tcp --dport 80 -j ACCEPT',
+		command => '/sbin/iptables -I INPUT -p tcp --dport 80 -j ACCEPT',
 	}
 	
 	exec { 'pecl install mongo':
@@ -44,6 +44,11 @@ class nginx-php-mongo {
 		before => [File['/etc/php.ini'], File['/etc/php-fpm.conf'], File['/etc/php-fpm.d/www.conf']],
 		unless => "/usr/bin/php -m | grep mongo",
 	}
+
+	exec { "pear upgrade":
+        require => Package["php-pear"],
+		command => '/usr/bin/pear upgrade',
+    }
 	
 	exec { 'pear config-set auto_discover 1':
 		command => '/usr/bin/pear config-set auto_discover 1',
@@ -111,7 +116,6 @@ class nginx-php-mongo {
 	}
 
 	file { '/var/log/nginx':
-		notify => Service["php-fpm"],
 		owner  => nginx,
 		group  => nginx,
 		ensure => directory,
