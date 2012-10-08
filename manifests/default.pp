@@ -7,7 +7,7 @@ class nginx-php-mongo {
 		ip           => $ipaddress,
 	}
 	
-	$php = ["php-fpm", "php-cli", "php-devel", "php-gd", "php-pear", "php-pecl-apc", "php-mcrypt", "php-pecl-xdebug", "php-pecl-sqlite"]
+	$php = ["php-fpm","php-mbstring","php-pdo", "php-xml","php-cli", "php-devel", "php-gd", "php-pear", "php-pecl-apc", "php-mcrypt", "php-pecl-xdebug", "php-pecl-sqlite"]
 
 	exec { 'yum -y update':
 	  	command => '/usr/bin/yum -y update',
@@ -24,11 +24,16 @@ class nginx-php-mongo {
 
 	package { "mongo-10gen-server":
 		ensure => present,
+		before => Service['mongod'],
 	}
 	
 	package { $php:
 		notify => Service['php-fpm'],
 		ensure => latest,
+	}
+
+	exec { 'iptables -I INPUT -p tcp --dport 80 -j ACCEPT':
+		command => 'iptables -I INPUT -p tcp --dport 80 -j ACCEPT',
 	}
 	
 	exec { 'pecl install mongo':
@@ -36,7 +41,7 @@ class nginx-php-mongo {
 		command => '/usr/bin/pecl install --force mongo',
 		logoutput => "on_failure",
 		require => [ Package[$php]],
-		before => [File['/etc/php/cli/php.ini'], File['/etc/php/fpm/php.ini'], File['/etc/php/fpm/php-fpm.conf'], File['/etc/php/fpm/pool.d/www.conf']],
+		before => [File['/etc/php.ini'], File['/etc/php-fpm.conf'], File['/etc/php-fpm.d/www.conf']],
 		unless => "/usr/bin/php -m | grep mongo",
 	}
 	
@@ -48,22 +53,25 @@ class nginx-php-mongo {
 	}
 	
 	exec { 'pear install pear.phpunit.de/PHPUnit':
-		notify => Service["php-fpm"],
 		command => '/usr/bin/pear install --force pear.phpunit.de/PHPUnit',
-		before => [File['/etc/php/cli/php.ini'], File['/etc/php/fpm/php.ini'], File['/etc/php/fpm/php-fpm.conf'], File['/etc/php/fpm/pool.d/www.conf']],
+		# before => [File['/etc/php.ini'], File['/etc/php-fpm.conf'], File['/etc/php-fpm.d/www.conf']],
+		# require => File['/tmp/pear/download'],
 		unless => "/bin/ls -l /usr/bin/ | grep phpunit",
 	}
-	
-	file { '/etc/php/cli/php.ini':
-		owner  => root,
-		group  => root,
-		ensure => file,
-		mode   => 644,
-		source => '/vagrant/files/php/cli/php.ini',
-		require => Package[$php],
+
+	file { '/tmp/pear/download':
+		before => Package[$php],
+		ensure => "directory",
+		mode => 777,
+	}
+
+	file {'/tmp/pear':
+		before => File['/tmp/pear/download'],
+		ensure => "directory",
+		mode => 777,
 	}
 	
-	file { '/etc/php/fpm/php.ini':
+	file { '/etc/php.ini':
 		notify => Service["php-fpm"],
 		owner  => root,
 		group  => root,
@@ -73,7 +81,7 @@ class nginx-php-mongo {
 		require => Package[$php],
 	}
 	
-	file { '/etc/php/fpm/php-fpm.conf':
+	file { '/etc/php-fpm.conf':
 		notify => Service["php-fpm"],
 		owner  => root,
 		group  => root,
@@ -83,7 +91,7 @@ class nginx-php-mongo {
 		require => Package[$php],
 	}
 	
-	file { '/etc/php/fpm/pool.d/www.conf':
+	file { '/etc/php-fpm.d/www.conf':
 		notify => Service["php-fpm"],
 		owner  => root,
 		group  => root,
@@ -101,6 +109,15 @@ class nginx-php-mongo {
 		source => '/vagrant/files/nginx/default.conf',
 		require => Package["nginx"],
 	}
+
+	file { '/var/log/nginx':
+		notify => Service["php-fpm"],
+		owner  => nginx,
+		group  => nginx,
+		ensure => directory,
+		mode   => 755,
+	}
+
 	
 	service { "php-fpm":
 	  ensure => running,
@@ -109,7 +126,7 @@ class nginx-php-mongo {
 	
 	service { "nginx":
 	  ensure => running,
-	  require => Package["nginx"],
+	  require => [Package["nginx"], Package["mongo-10gen-server"], Package["mongo-10gen"], Package[$php]],
 	}
 	
 	service { "mongod":
