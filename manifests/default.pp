@@ -17,6 +17,7 @@ class nginx-php-mongo {
 
 	exec { 'install composer':
 		command => '/usr/bin/curl -s https://getcomposer.org/installer | php -- --install-dir=/usr/bin',
+		require => Package[$php]
 	}
 
 	package { $ruby:
@@ -134,14 +135,6 @@ class nginx-php-mongo {
 		require => Package["nginx"],
 	}
 
-	file { '/var/log/nginx':
-		owner  => nginx,
-		group  => nginx,
-		ensure => directory,
-		mode   => 755,
-	}
-
-	
 	service { "php-fpm":
 	  ensure => running,
 	  require => Package["php-fpm"],
