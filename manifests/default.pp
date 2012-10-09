@@ -8,12 +8,31 @@ class nginx-php-mongo {
 	}
 	
 	$php = ["php-fpm","php-mbstring","php-pdo", "php-xml","php-cli", "php-devel", "php-gd", "php-pear", "php-pecl-apc", "php-mcrypt", "php-pecl-xdebug", "php-pecl-sqlite"]
+	$ruby = ["ruby", "rubygems"]
 
 	exec { 'yum -y update':
 	  	command => '/usr/bin/yum -y update',
 		before => [Package["nginx"],  Package["mongo-10gen-server"], Package["mongo-10gen"], Package[$php]],
 	}
-	
+
+	exec { 'install composer':
+		command => '/usr/bin/curl -s https://getcomposer.org/installer | php -- --install-dir=/usr/bin',
+	}
+
+	package { $ruby:
+		ensure => present,
+		require => Package['libyaml'],
+	}
+
+	exec { 'gem install compass':
+		require => Package[$ruby],
+		command => '/usr/bin/gem install compass',
+	}
+
+	package { 'libyaml':
+		ensure => present,
+	}
+
 	package { "nginx":
 		ensure => present,
 	}
