@@ -20,6 +20,11 @@ class nginx-php-mongo {
 		require => Package[$php]
 	}
 
+	exec { 'install php-cs-fixer':
+		command => 'curl http://cs.sensiolabs.org/get/php-cs-fixer.phar -o /usr/local/bin/php-cs-fixer && chmod a+x /usr/local/bin/php-cs-fixer',
+		require => Package[$php]
+	}
+
 	package { $ruby:
 		ensure => present,
 		require => Package['libyaml'],
