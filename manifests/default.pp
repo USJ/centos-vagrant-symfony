@@ -21,9 +21,29 @@ class nginx-php-mongo {
 	}
 
 	exec { 'install php-cs-fixer':
-		command => 'curl http://cs.sensiolabs.org/get/php-cs-fixer.phar -o /usr/local/bin/php-cs-fixer && chmod a+x /usr/local/bin/php-cs-fixer',
+		command => '/usr/bin/curl http://cs.sensiolabs.org/get/php-cs-fixer.phar -o /usr/local/bin/php-cs-fixer && chmod a+x /usr/local/bin/php-cs-fixer',
 		require => Package[$php]
 	}
+
+	exec { 'wget http://nodejs.tchol.org/repocfg/el/nodejs-stable-release.noarch.rpm':
+		command => '/usr/bin/wget http://nodejs.tchol.org/repocfg/el/nodejs-stable-release.noarch.rpm',
+		cwd => '/home/vagrant/'
+	}
+
+	exec { 'yum localinstall --nogpgcheck nodejs-stable-release.noarch.rpm':
+		command => '/usr/bin/yum localinstall --nogpgcheck nodejs-stable-release.noarch.rpm',
+		cwd => '/home/vagrant/',
+		require => Exec['yum localinstall --nogpgcheck nodejs-stable-release.noarch.rpm']
+	}
+
+	exec { 'yum install nodejs-compat-symlinks npm':
+		command => '/usr/bin/yum install nodejs-compat-symlinks npm',
+		cwd => '/home/vagrant/',
+		require => Exec['yum localinstall --nogpgcheck nodejs-stable-release.noarch.rpm']
+	}
+
+
+
 
 	package { $ruby:
 		ensure => present,
