@@ -33,7 +33,7 @@ class nginx-php-mongo {
 	exec { 'yum localinstall --nogpgcheck nodejs-stable-release.noarch.rpm':
 		command => '/usr/bin/yum localinstall --nogpgcheck nodejs-stable-release.noarch.rpm',
 		cwd => '/home/vagrant/',
-		require => Exec['yum localinstall --nogpgcheck nodejs-stable-release.noarch.rpm']
+		require => Exec['wget http://nodejs.tchol.org/repocfg/el/nodejs-stable-release.noarch.rpm']
 	}
 
 	exec { 'yum install nodejs-compat-symlinks npm':
